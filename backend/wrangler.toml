@@ -1,0 +1,11 @@
+name = "claude-artifacts-clone-backend"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+
+# Workers AI binding
+[ai]
+binding = "AI"
+
+# Optional: set a var for allowed origin (or just allow * in code)
+[vars]
+ALLOWED_ORIGIN = "*"
