@@ -111,3 +111,4 @@ git push -u origin main
 
 Both `backend/` and `frontend/` have their own `node_modules`/`.env` ignored
 via `.gitignore`, so the repo stays clean.
+"# claude-artifacts" 
