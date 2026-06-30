@@ -3,11 +3,16 @@ import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import { styles, colors } from "../styles.js";
 
-export default function ArtifactPanel({ artifacts, activeFilename, setActiveFilename }) {
+export default function ArtifactPanel({ artifacts, activeFilename, setActiveFilename, isOpen, onClose }) {
   const [copied, setCopied] = useState(false);
 
   const filenames = Object.keys(artifacts);
   const active = activeFilename ? artifacts[activeFilename] : null;
+
+  // Don't render anything until there's actually something to show — the
+  // empty "No artifacts yet" placeholder is never shown standing alone in
+  // the layout anymore; the panel only opens once a file card is tapped.
+  if (!isOpen) return null;
 
   const handleCopy = async () => {
     if (!active) return;
@@ -32,17 +37,20 @@ export default function ArtifactPanel({ artifacts, activeFilename, setActiveFile
   };
 
   return (
-    <div style={styles.artifactColumn}>
+    <div style={styles.artifactOverlay(isOpen)}>
       <div style={styles.artifactHeader}>
-        <span style={{ fontSize: 14, fontWeight: 600 }}>Artifacts</span>
-        {filenames.length > 0 && (
+        <button style={styles.backBtn} onClick={onClose} aria-label="Close artifacts panel">
+          ✕
+        </button>
+        <span style={{ fontSize: 14, fontWeight: 600, flex: 1 }}>Artifacts</span>
+        {filenames.length > 1 && (
           <button style={styles.iconBtn("primary")} onClick={handleDownloadZip}>
-            ⬇ Download All (.zip)
+            ⬇ All (.zip)
           </button>
         )}
       </div>
 
-      {filenames.length > 0 && (
+      {filenames.length > 1 && (
         <div style={styles.artifactTabs}>
           {filenames.map((name) => (
             <div
@@ -61,8 +69,7 @@ export default function ArtifactPanel({ artifacts, activeFilename, setActiveFile
         {!active ? (
           <div style={styles.emptyState}>
             <div style={{ fontSize: 28 }}>{"</>"}</div>
-            <div>No artifacts yet.</div>
-            <div>Generated code blocks will show up here as cards you can review and download.</div>
+            <div>No artifact selected.</div>
           </div>
         ) : (
           <div style={styles.codeBlockWrap}>
@@ -72,10 +79,10 @@ export default function ArtifactPanel({ artifacts, activeFilename, setActiveFile
               </span>
               <div style={styles.actionBtnRow}>
                 <button style={styles.iconBtn()} onClick={handleCopy}>
-                  {copied ? "✓ Copied" : "Copy Code"}
+                  {copied ? "✓ Copied" : "Copy"}
                 </button>
                 <button style={styles.iconBtn()} onClick={handleDownloadSingle}>
-                  Download File
+                  Download
                 </button>
               </div>
             </div>
