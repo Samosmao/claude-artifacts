@@ -20,9 +20,12 @@ export const colors = {
 
 export const styles = {
   app: {
+    position: "relative",
     display: "flex",
-    width: "100vw",
-    height: "100vh",
+    width: "100%",
+    // dvh accounts for mobile Safari's collapsing address bar so the input
+    // bar never gets hidden/clipped at the bottom of the screen.
+    height: "100dvh",
     background: colors.bg,
     color: colors.text,
     fontFamily:
@@ -32,14 +35,16 @@ export const styles = {
 
   // ----- Chat column -----
   chatColumn: {
-    flex: "1 1 55%",
+    flex: "1 1 auto",
     display: "flex",
     flexDirection: "column",
     minWidth: 0,
+    height: "100%",
     borderRight: `1px solid ${colors.border}`,
   },
   chatHeader: {
-    padding: "14px 20px",
+    flex: "0 0 auto",
+    padding: "12px 16px",
     borderBottom: `1px solid ${colors.border}`,
     fontSize: 14,
     fontWeight: 600,
@@ -51,19 +56,21 @@ export const styles = {
     background: colors.panelBg,
   },
   chatMessages: {
-    flex: 1,
+    flex: "1 1 auto",
+    minHeight: 0,
     overflowY: "auto",
-    padding: "20px",
+    WebkitOverflowScrolling: "touch",
+    padding: "16px",
     display: "flex",
     flexDirection: "column",
-    gap: 16,
+    gap: 14,
   },
   bubbleRow: (role) => ({
     display: "flex",
     justifyContent: role === "user" ? "flex-end" : "flex-start",
   }),
   bubble: (role) => ({
-    maxWidth: "82%",
+    maxWidth: "88%",
     padding: "10px 14px",
     borderRadius: 14,
     fontSize: 14.5,
@@ -73,12 +80,33 @@ export const styles = {
     whiteSpace: "pre-wrap",
     wordBreak: "break-word",
   }),
+
+  // Input bar pinned to the bottom, padded for iPhone Safari's home-indicator
+  // safe area so it never sits underneath it.
   chatInputBar: {
+    flex: "0 0 auto",
     display: "flex",
-    gap: 10,
-    padding: "14px 16px",
+    alignItems: "flex-end",
+    gap: 8,
+    padding: "10px 12px calc(10px + env(safe-area-inset-bottom)) 12px",
     borderTop: `1px solid ${colors.border}`,
     background: colors.panelBg,
+  },
+  // Label sits above the textarea instead of as a placeholder, so it stays
+  // visible/readable on small screens instead of disappearing on focus.
+  inputWrap: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+  },
+  inputLabel: {
+    fontSize: 11,
+    fontWeight: 600,
+    letterSpacing: 0.3,
+    color: colors.textFaint,
+    textTransform: "uppercase",
+    paddingLeft: 2,
   },
   textarea: {
     flex: 1,
@@ -88,41 +116,114 @@ export const styles = {
     border: `1px solid ${colors.borderLight}`,
     borderRadius: 10,
     padding: "10px 12px",
-    fontSize: 14,
+    fontSize: 16, // 16px prevents iOS Safari auto-zoom-on-focus
     fontFamily: "inherit",
     outline: "none",
     maxHeight: 140,
+    width: "100%",
+    boxSizing: "border-box",
   },
   sendBtn: (disabled) => ({
+    flex: "0 0 auto",
     background: disabled ? colors.accentDim : colors.accent,
     color: disabled ? colors.textFaint : "#0b0d10",
     border: "none",
     borderRadius: 10,
-    padding: "0 18px",
+    padding: "0 16px",
+    height: 40,
     fontWeight: 600,
     fontSize: 14,
     cursor: disabled ? "not-allowed" : "pointer",
   }),
 
-  // ----- Artifact column -----
-  artifactColumn: {
-    flex: "1 1 45%",
+  // ----- Inline file card (rendered inside a chat bubble) -----
+  fileCard: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "10px 12px",
+    margin: "6px 0",
+    borderRadius: 10,
+    background: colors.panelBgAlt,
+    border: `1px solid ${colors.borderLight}`,
+    cursor: "pointer",
+    maxWidth: 320,
+  },
+  fileCardIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    background: colors.accentDim,
+    color: colors.accent,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 14,
+    flex: "0 0 auto",
+  },
+  fileCardText: {
+    display: "flex",
+    flexDirection: "column",
+    minWidth: 0,
+  },
+  fileCardName: {
+    fontSize: 13.5,
+    fontWeight: 600,
+    color: colors.text,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+  fileCardSub: {
+    fontSize: 11.5,
+    color: colors.textFaint,
+  },
+
+  // ----- Artifact panel: desktop = side column, mobile = full-screen overlay -----
+  artifactColumn: (isOpen) => ({
     display: "flex",
     flexDirection: "column",
     minWidth: 0,
     background: colors.panelBg,
-  },
+    // Desktop default: static side-by-side column. Overridden to a fixed
+    // overlay at narrow widths via the `mobileOverlay` style below, toggled
+    // in App.jsx based on window width.
+    flex: "1 1 45%",
+    height: "100%",
+  }),
+  artifactOverlay: (isOpen) => ({
+    position: "fixed",
+    inset: 0,
+    zIndex: 50,
+    display: isOpen ? "flex" : "none",
+    flexDirection: "column",
+    background: colors.panelBg,
+    height: "100dvh",
+  }),
   artifactHeader: {
-    padding: "14px 20px",
+    flex: "0 0 auto",
+    padding: "12px 14px",
     borderBottom: `1px solid ${colors.border}`,
     display: "flex",
     alignItems: "center",
+    gap: 10,
     justifyContent: "space-between",
   },
+  backBtn: {
+    background: "transparent",
+    border: "none",
+    color: colors.text,
+    fontSize: 18,
+    cursor: "pointer",
+    padding: "2px 6px",
+    lineHeight: 1,
+  },
   artifactTabs: {
+    flex: "0 0 auto",
     display: "flex",
     gap: 6,
     overflowX: "auto",
+    WebkitOverflowScrolling: "touch",
     padding: "8px 12px",
     borderBottom: `1px solid ${colors.border}`,
   },
@@ -137,16 +238,18 @@ export const styles = {
     border: `1px solid ${active ? colors.accent : "transparent"}`,
   }),
   artifactBody: {
-    flex: 1,
+    flex: "1 1 auto",
+    minHeight: 0,
     display: "flex",
     flexDirection: "column",
-    minHeight: 0,
   },
   codeBlockWrap: {
-    flex: 1,
+    flex: "1 1 auto",
+    minHeight: 0,
     overflow: "auto",
+    WebkitOverflowScrolling: "touch",
     background: colors.codeBg,
-    margin: "0 16px 16px 16px",
+    margin: "0 12px 12px 12px",
     borderRadius: 12,
     border: `1px solid ${colors.border}`,
   },
@@ -154,20 +257,23 @@ export const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: "10px 14px",
+    padding: "10px 12px",
     borderBottom: `1px solid ${colors.border}`,
     position: "sticky",
     top: 0,
     background: colors.codeBg,
+    flexWrap: "wrap",
+    gap: 8,
   },
   filename: {
     fontSize: 13,
     fontFamily: "'Fira Code', monospace",
     color: colors.accent,
+    overflowWrap: "anywhere",
   },
   pre: {
     margin: 0,
-    padding: "16px",
+    padding: "14px",
     fontSize: 13,
     lineHeight: 1.6,
     fontFamily: "'Fira Code', 'Cascadia Code', monospace",
@@ -208,6 +314,7 @@ export const styles = {
     height: 7,
     borderRadius: "50%",
     background: streaming ? colors.success : colors.textFaint,
+    flex: "0 0 auto",
   }),
 
   modelSelect: {
@@ -219,7 +326,7 @@ export const styles = {
     fontSize: 12.5,
     outline: "none",
     cursor: "pointer",
-    maxWidth: 220,
+    maxWidth: 180,
   },
   modelNote: {
     fontSize: 11.5,
