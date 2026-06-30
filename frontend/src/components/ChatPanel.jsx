@@ -2,8 +2,32 @@ import React, { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { styles, colors } from "../styles.js";
 import { MODELS } from "../models.js";
+import { splitDisplaySegments } from "../artifactParser.js";
 
-export default function ChatPanel({ messages, onSend, isStreaming, selectedModel, setSelectedModel, availableModels }) {
+function FileCard({ filename, complete, onOpen }) {
+  const ext = filename.split(".").pop()?.toUpperCase() || "FILE";
+  return (
+    <div style={styles.fileCard} onClick={onOpen}>
+      <div style={styles.fileCardIcon}>{"</>"}</div>
+      <div style={styles.fileCardText}>
+        <span style={styles.fileCardName}>{filename}</span>
+        <span style={styles.fileCardSub}>
+          {complete ? `${ext} · Click to open` : "Generating…"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export default function ChatPanel({
+  messages,
+  onSend,
+  isStreaming,
+  selectedModel,
+  setSelectedModel,
+  availableModels,
+  onOpenArtifact,
+}) {
   const [input, setInput] = useState("");
   const scrollRef = useRef(null);
 
@@ -32,7 +56,15 @@ export default function ChatPanel({ messages, onSend, isStreaming, selectedModel
     <div style={styles.chatColumn}>
       <div style={styles.chatHeader}>
         <span style={styles.statusDot(isStreaming)} />
-        <span>Artifacts Clone Chat</span>
+        <span
+          style={{
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Artifacts Clone Chat
+        </span>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
           <select
             style={styles.modelSelect}
@@ -53,35 +85,49 @@ export default function ChatPanel({ messages, onSend, isStreaming, selectedModel
           </select>
         </div>
       </div>
-      {activeModelMeta?.note && (
-        <div style={{ ...styles.modelNote, padding: "4px 20px 0 20px" }}>{activeModelMeta.note}</div>
-      )}
 
       <div style={styles.chatMessages} ref={scrollRef}>
         {messages.length === 0 && (
           <div style={{ color: colors.textFaint, fontSize: 13.5, marginTop: 20 }}>
             Ask me to build something — e.g. "Create a Python script that scrapes
-            headlines" — and the generated code will appear in the panel on the right.
+            headlines" — and the generated code will appear as a file card you can tap to open.
           </div>
         )}
-        {messages.map((m, i) => (
-          <div key={i} style={styles.bubbleRow(m.role)}>
-            <div style={styles.bubble(m.role)}>
-              <ReactMarkdown>{m.displayText || ""}</ReactMarkdown>
+        {messages.map((m, i) => {
+          const segments = splitDisplaySegments(m.displayText || "");
+          return (
+            <div key={i} style={styles.bubbleRow(m.role)}>
+              <div style={styles.bubble(m.role)}>
+                {segments.map((seg, j) =>
+                  seg.type === "card" ? (
+                    <FileCard
+                      key={j}
+                      filename={seg.filename}
+                      complete={seg.complete}
+                      onOpen={() => onOpenArtifact(seg.filename)}
+                    />
+                  ) : (
+                    <ReactMarkdown key={j}>{seg.content}</ReactMarkdown>
+                  )
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div style={styles.chatInputBar}>
-        <textarea
-          style={styles.textarea}
-          rows={1}
-          placeholder="Message the assistant…"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-        />
+        <div style={styles.inputWrap}>
+          <span style={styles.inputLabel}>Message the assistant</span>
+          <textarea
+            style={styles.textarea}
+            rows={1}
+            placeholder="Type here…"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+        </div>
         <button
           style={styles.sendBtn(isStreaming || !input.trim())}
           onClick={handleSend}
