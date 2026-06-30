@@ -13,15 +13,13 @@ export default function App() {
   const [messages, setMessages] = useState([]); // { role, displayText, rawText }
   const [artifacts, setArtifacts] = useState({}); // filename -> { filename, code, complete }
   const [activeFilename, setActiveFilename] = useState(null);
+  const [artifactPanelOpen, setArtifactPanelOpen] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL_ID);
   const [availableModels, setAvailableModels] = useState(MODELS);
 
   const historyRef = useRef([]); // raw {role, content} pairs sent to the API
 
-  // Pull the live allowlist from the backend so the dropdown always matches
-  // whatever models the Worker currently permits (falls back to the local
-  // MODELS list in models.js if this fails, e.g. offline dev).
   useEffect(() => {
     fetch(MODELS_URL)
       .then((res) => (res.ok ? res.json() : null))
@@ -44,7 +42,6 @@ export default function App() {
 
     setIsStreaming(true);
 
-    // Placeholder assistant message that we will fill in as tokens stream
     let rawAssistantText = "";
     const assistantIndex = updatedMessages.length;
     setMessages((prev) => [...prev, { role: "assistant", displayText: "", rawText: "" }]);
@@ -70,9 +67,8 @@ export default function App() {
 
         buffer += decoder.decode(value, { stream: true });
 
-        // Workers AI streams Server-Sent-Events: "data: {...}\n\n"
         const parts = buffer.split("\n\n");
-        buffer = parts.pop(); // keep last (possibly incomplete) chunk in buffer
+        buffer = parts.pop();
 
         for (const part of parts) {
           const line = part.trim();
@@ -85,14 +81,13 @@ export default function App() {
             const token = payload.response ?? "";
             rawAssistantText += token;
           } catch {
-            // ignore malformed partial JSON chunks
+            /* ignore malformed partial JSON chunks */
           }
         }
 
         applyAssistantUpdate(assistantIndex, rawAssistantText);
       }
 
-      // Final flush in case anything is left in buffer
       if (buffer.trim().startsWith("data:")) {
         const jsonStr = buffer.trim().replace(/^data:\s*/, "");
         if (jsonStr && jsonStr !== "[DONE]") {
@@ -123,7 +118,10 @@ export default function App() {
     }
   };
 
-  // Re-parses the accumulated raw text, updates the chat bubble + artifact panel
+  // Re-parses the accumulated raw text, updates the chat bubble + artifact
+  // store. Unlike before, this no longer auto-opens the artifact panel —
+  // the user taps the file card in the chat bubble to open it, same as
+  // real Claude's Artifacts UI.
   function applyAssistantUpdate(assistantIndex, rawText) {
     const { displayText, artifacts: foundArtifacts } = parseArtifacts(rawText);
 
@@ -141,11 +139,20 @@ export default function App() {
         });
         return next;
       });
-      // Auto-focus the most recently produced artifact
+      // Keep the currently-open artifact (if the panel is already open and
+      // the user is watching this file stream in) synced live, but don't
+      // force the panel open on its own.
       const latest = foundArtifacts[foundArtifacts.length - 1];
-      setActiveFilename(latest.filename);
+      if (artifactPanelOpen) {
+        setActiveFilename(latest.filename);
+      }
     }
   }
+
+  const handleOpenArtifact = (filename) => {
+    setActiveFilename(filename);
+    setArtifactPanelOpen(true);
+  };
 
   return (
     <div style={styles.app}>
@@ -156,11 +163,14 @@ export default function App() {
         selectedModel={selectedModel}
         setSelectedModel={setSelectedModel}
         availableModels={availableModels}
+        onOpenArtifact={handleOpenArtifact}
       />
       <ArtifactPanel
         artifacts={artifacts}
         activeFilename={activeFilename}
         setActiveFilename={setActiveFilename}
+        isOpen={artifactPanelOpen}
+        onClose={() => setArtifactPanelOpen(false)}
       />
     </div>
   );
